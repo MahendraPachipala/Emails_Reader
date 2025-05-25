@@ -7,7 +7,7 @@ export default function Home() {
     const fetch = async () => {
       try {
         // Step 1: Get user data and access token
-        const res = await axios.get("http://localhost:3001/getuserdata", {
+        const res = await axios.get("https://emails-reader.onrender.com/getuserdata", {
           withCredentials: true,
         });
 

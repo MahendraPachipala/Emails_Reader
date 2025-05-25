@@ -5,25 +5,45 @@ import dotenv from 'dotenv';
 import session from "express-session"
 import url from "url";
 import crypto from "crypto";
-import cookieParser from "cookie-parser";
+import MongoStore from "connect-mongo";
 dotenv.config();
 
+
+await redisClient.connect();
+
 const app = express();
+// Trust proxy (important for secure cookies on Render)
+app.set("trust proxy", 1);
 const SCOPES = ["https://www.googleapis.com/auth/gmail.readonly","https://www.googleapis.com/auth/gmail.modify"];
+
 app.use(cors({
-  origin: "http://localhost:3000",
-  credentials: true,
+  origin: true,            // Reflects the request origin
+  credentials: true        // Allow credentials (cookies, auth headers, etc.)
 }));
+
 
 app.use(cookieParser());
+app.use(express.json());
 
+mongoose.connect(process.env.MONGO_URI, {
+  useNewUrlParser: true,
+  useUnifiedTopology: true,
+}).then(() => console.log("MongoDB connected"))
+  .catch(err => console.error("MongoDB connection error:", err));
+
+// Session with MongoDB
 app.use(session({
-  secret: 'your-secret-key', // Replace with a strong secret
+  secret: process.env.SESSION_SECRET || "defaultsecret",
   resave: false,
   saveUninitialized: false,
-// Use secure: true in production with HTTPS
+  store: MongoStore.create({ mongoUrl: process.env.MONGO_URI }),
+  cookie: {
+    secure: true,
+    httpOnly: true,
+    sameSite: "lax",
+    maxAge: 3600000 // 1 hour
+  }
 }));
-
 
 
 const oauth2Client = new google.auth.OAuth2(
@@ -39,7 +59,6 @@ const oauth2Client = new google.auth.OAuth2(
 // req.session.state = state;
 
 
-app.use(express.json());
 app.get("/",(req,res)=>{
  const state = crypto.randomBytes(16).toString("hex");
  req.session.state = state;
@@ -103,7 +122,7 @@ app.get('/oauth2callback', async (req, res) => {
   // });
 
     // ✅ Redirect to frontend (or send a success message)
-    res.redirect('http://localhost:3000/home'); // adjust as needed
+    res.redirect('https://emails-reader.vercel.app/home'); // adjust as needed
   } catch (error) {
     console.error("Token error:", error);
     res.status(500).send("Failed to get tokens");

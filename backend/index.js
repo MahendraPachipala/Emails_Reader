@@ -5,6 +5,7 @@ import dotenv from 'dotenv';
 import session from "express-session"
 import url from "url";
 import crypto from "crypto";
+import cookieParser from "cookie-parser";
 import MongoStore from "connect-mongo";
 dotenv.config();
 

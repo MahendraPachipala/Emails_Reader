@@ -9,7 +9,6 @@ import MongoStore from "connect-mongo";
 dotenv.config();
 
 
-await redisClient.connect();
 
 const app = express();
 // Trust proxy (important for secure cookies on Render)

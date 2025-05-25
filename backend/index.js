@@ -7,6 +7,7 @@ import url from "url";
 import crypto from "crypto";
 import cookieParser from "cookie-parser";
 import MongoStore from "connect-mongo";
+import mongoose from "mongoose";
 dotenv.config();
 
 

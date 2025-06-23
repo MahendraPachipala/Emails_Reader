@@ -1,4 +1,3 @@
-// /login.jsx
 import axios from "axios";
 
 const handleLogin = async () => {

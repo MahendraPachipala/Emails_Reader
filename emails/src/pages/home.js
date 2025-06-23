@@ -1,24 +1,28 @@
 import { useEffect } from "react";
 import axios from "axios";
 
+function getAccessTokenFromUrl() {
+  const urlParams = new URLSearchParams(window.location.search);
+  return urlParams.get("token");
+}
+
 export default function Home() {
   useEffect(() => {
-    // ✅ Extract access_token from query string (e.g. ?access_token=xxxx)
-    const queryParams = new URLSearchParams(window.location.search);
-    const access_token = queryParams.get("access_token");
+    const fetch = async () => {
+      const accessToken = getAccessTokenFromUrl();
+      if (!accessToken) {
+        console.error("No access token in URL");
+        return;
+      }
 
-    if (!access_token) {
-      console.error("Missing access token in URL");
-      return;
-    }
+      console.log("Access Token:", accessToken);
 
-    const fetchUnreadEmails = async () => {
       try {
         const messagesRes = await axios.get(
           "https://gmail.googleapis.com/gmail/v1/users/me/messages",
           {
             headers: {
-              Authorization: `Bearer ${access_token}`,
+              Authorization: `Bearer ${accessToken}`,
             },
             params: {
               maxResults: 100,
@@ -27,27 +31,27 @@ export default function Home() {
           }
         );
 
-        const messages = messagesRes.data.messages;
-
-        if (!messages || messages.length === 0) {
+        const messages = messagesRes.data.messages || [];
+        if (messages.length === 0) {
           console.log("No unread messages found.");
           return;
         }
 
         messages.forEach((message, index) => {
           setTimeout(() => {
-            axios.post(
-              `https://gmail.googleapis.com/gmail/v1/users/me/messages/${message.id}/modify`,
-              {
-                removeLabelIds: ["UNREAD"],
-              },
-              {
-                headers: {
-                  Authorization: `Bearer ${access_token}`,
-                  "Content-Type": "application/json",
+            axios
+              .post(
+                `https://gmail.googleapis.com/gmail/v1/users/me/messages/${message.id}/modify`,
+                {
+                  removeLabelIds: ["UNREAD"],
                 },
-              }
-            )
+                {
+                  headers: {
+                    Authorization: `Bearer ${accessToken}`,
+                    "Content-Type": "application/json",
+                  },
+                }
+              )
               .then(() => {
                 console.log(`Marked message ${message.id} as read`);
               })
@@ -59,14 +63,13 @@ export default function Home() {
               });
           }, 2000 * index);
         });
-
       } catch (err) {
-        console.error("Error fetching emails:", err.response?.data || err.message);
+        console.error("Error during fetch:", err.response?.data || err.message);
       }
     };
 
-    fetchUnreadEmails();
+    fetch();
   }, []);
 
-  return <div>Loading your unread Gmail messages...</div>;
+  return <div>Check console for logs. <a href="/login">Back to Login</a></div>;
 }

@@ -1,74 +1,60 @@
+// /home.jsx
 import { useEffect } from "react";
+import { useRouter } from "next/router";
 import axios from "axios";
 
 export default function Home() {
+  const router = useRouter();
 
   useEffect(() => {
-    const fetch = async () => {
+    const { access_token } = router.query;
+    if (!access_token) {
+      console.error("Missing access token");
+      return;
+    }
+
+    const fetchUnread = async () => {
       try {
-        // Step 1: Get user data and access token
-        const res = await axios.get("https://emails-reader.onrender.com/getuserdata", {
-          withCredentials: true,
-        });
-
-        const accessToken = res.data.access_token;
-        console.log("Access Token:", accessToken);
-
-        // Step 2: Fetch 100 unread Gmail messages
         const messagesRes = await axios.get(
           "https://gmail.googleapis.com/gmail/v1/users/me/messages",
           {
-            headers: {
-              Authorization: `Bearer ${accessToken}`,
-            },
-            params: {
-              maxResults: 100,
-              q: "is:unread", // Only fetch unread emails
-            },
+            headers: { Authorization: `Bearer ${access_token}` },
+            params: { maxResults: 100, q: "is:unread" },
           }
         );
 
         const messages = messagesRes.data.messages;
-
         if (!messages || messages.length === 0) {
           console.log("No unread messages found.");
           return;
         }
 
-        // Step 3: Loop through each message and mark it as read with delay
         messages.forEach((message, index) => {
           setTimeout(() => {
-            axios
-              .post(
-                `https://gmail.googleapis.com/gmail/v1/users/me/messages/${message.id}/modify`,
-                {
-                  removeLabelIds: ["UNREAD"],
+            axios.post(
+              `https://gmail.googleapis.com/gmail/v1/users/me/messages/${message.id}/modify`,
+              { removeLabelIds: ["UNREAD"] },
+              {
+                headers: {
+                  Authorization: `Bearer ${access_token}`,
+                  "Content-Type": "application/json",
                 },
-                {
-                  headers: {
-                    Authorization: `Bearer ${accessToken}`,
-                    "Content-Type": "application/json",
-                  },
-                }
-              )
-              .then(() => {
-                console.log(`Marked message ${message.id} as read`);
-              })
-              .catch((err) => {
-                console.error(
-                  `Failed to modify message ${message.id}`,
-                  err.response?.data || err.message
-                );
-              });
-          }, 2000 * index); // Delay increases with each message
+              }
+            ).then(() => {
+              console.log(`Marked message ${message.id} as read`);
+            }).catch(err => {
+              console.error(`Failed to modify message ${message.id}`, err.response?.data || err.message);
+            });
+          }, 2000 * index);
         });
+
       } catch (err) {
-        console.error("Error during fetching:", err.response?.data || err.message);
+        console.error("Error fetching unread emails:", err.response?.data || err.message);
       }
     };
 
-    fetch();
-  }, []);
+    fetchUnread();
+  }, [router.query]);
 
-  return <a href="/login">login</a>;
+  return <div>Loading Gmail Data...</div>;
 }

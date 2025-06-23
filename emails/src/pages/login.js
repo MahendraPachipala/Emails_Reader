@@ -1,11 +1,9 @@
+// /login.jsx
 import axios from "axios";
 
 const handleLogin = async () => {
   try {
-    // Important: Add withCredentials: true to send cookies
-    const res = await axios.get("https://emails-reader.onrender.com/", {
-      withCredentials: true
-    });
+    const res = await axios.get("https://emails-reader.onrender.com/");
     window.location.href = res.data.url;
   } catch (error) {
     console.error("Login error:", error);
